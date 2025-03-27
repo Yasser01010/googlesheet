@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Google Sheets</title>
+</head>
+<body>
+    <h2>Datos desde Google Sheets</h2>
+    <table border="1" id="tabla">
+        <thead>
+            <tr id="encabezado"></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <button onclick="guardarCambios()">Guardar Cambios</button>
+
+    <script>
+        const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRO8YfASIlkY79dxjffElsbYoTNP_sJX36wvP-GxFEk_3SjqybMD89-b_g2xq27Cb8n1tbx50hxbGRd/pub?output=csv";
+
+        async function cargarDatos() {
+            const response = await fetch(sheetURL);
+            const data = await response.text();
+            const filas = data.split("\n").map(fila => fila.split(","));
+
+            const encabezado = document.getElementById("encabezado");
+            const tbody = document.querySelector("#tabla tbody");
+            encabezado.innerHTML = "";
+            tbody.innerHTML = "";
+
+            // Crear encabezado
+            filas[0].forEach(columna => {
+                let th = document.createElement("th");
+                th.textContent = columna;
+                encabezado.appendChild(th);
+            });
+
+            // Crear filas editables
+            for (let i = 1; i < filas.length; i++) {
+                let tr = document.createElement("tr");
+                filas[i].forEach((dato, index) => {
+                    let td = document.createElement("td");
+                    let input = document.createElement("input");
+                    input.value = dato;
+                    input.dataset.columna = filas[0][index]; // Guarda el nombre de la columna
+                    td.appendChild(input);
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            }
+        }
+
+        function guardarCambios() {
+            let datos = [];
+            const filas = document.querySelectorAll("#tabla tbody tr");
+
+            filas.forEach(fila => {
+                let filaData = [];
+                fila.querySelectorAll("input").forEach(input => {
+                    filaData.push(input.value);
+                });
+                datos.push(filaData);
+            });
+
+            // Enviar datos a Google Apps Script
+            fetch("https://script.google.com/macros/s/AKfycbwTwbK4it4e4PqrfKajqokt73pEkEIJOWZQ7y0LUzC6edCqbvlhBPRiNQDlAzJ-jkRw4A/exec", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ datos })
+            }).then(res => res.text()).then(res => alert(res));
+        }
+
+        cargarDatos();
+    </script>
+</body>
+</html>
